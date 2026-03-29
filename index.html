@@ -42,9 +42,10 @@ canvas#viz { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-inde
 .container { text-align: center; position: relative; z-index: 1; padding: 0 24px; }
 
 h1 {
-    font-size: clamp(28px, 7vw, 60px);
+    font-size: clamp(36px, 10vw, 80px);
     color: #f0d0d0; font-weight: 300;
-    letter-spacing: 4px; margin-bottom: 24px;
+    letter-spacing: 5px; margin-bottom: 28px;
+    line-height: 1.2;
     opacity: 0;
 }
 h1 span {
@@ -87,8 +88,8 @@ h1.shimmer { animation: shimmer 3s ease-in-out infinite; }
 .weather-desc { color: #8a7a7a; font-style: italic; }
 
 .line {
-    font-size: clamp(16px, 4.5vw, 24px);
-    color: #c9a0a0; line-height: 1.8;
+    font-size: clamp(18px, 5vw, 28px);
+    color: #c9a0a0; line-height: 1.9;
     font-weight: 300; font-style: italic;
     opacity: 0; transform: translateY(25px);
     filter: blur(6px);
