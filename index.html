@@ -99,50 +99,6 @@ h1.shimmer { animation: shimmer 3s ease-in-out infinite; }
     opacity: 1; transform: translateY(0); filter: blur(0);
 }
 
-/* Apple Music style lyrics */
-.lyrics-container {
-    position: fixed;
-    top: 0; left: 0;
-    width: 100%; height: 100%;
-    display: flex; flex-direction: column;
-    align-items: center; justify-content: center;
-    z-index: 1;
-    opacity: 0;
-    transition: opacity 1.5s ease;
-    padding: 0 28px;
-    pointer-events: none;
-}
-.lyrics-container.visible { opacity: 1; }
-
-.lyric-line {
-    font-size: clamp(22px, 6.5vw, 36px);
-    font-weight: 400;
-    color: rgba(200,160,160,0.2);
-    text-align: center;
-    line-height: 1.6;
-    margin: 6px 0;
-    transition: all 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-    filter: blur(2px);
-    transform: scale(0.95);
-    font-style: normal;
-}
-.lyric-line.active {
-    color: #f0d0d0;
-    filter: blur(0);
-    transform: scale(1.08);
-    text-shadow: 0 0 30px rgba(240,208,208,0.3);
-    font-weight: 300;
-}
-.lyric-line.past {
-    color: rgba(200,160,160,0.35);
-    filter: blur(0);
-    transform: scale(0.95);
-}
-.lyric-line.upcoming {
-    color: rgba(200,160,160,0.15);
-    filter: blur(3px);
-    transform: scale(0.92);
-}
 
 .music-player {
     position: fixed; bottom: 20px;
@@ -220,7 +176,6 @@ h1.shimmer { animation: shimmer 3s ease-in-out infinite; }
     <button class="music-btn" id="nextBtn">&#9654;</button>
 </div>
 
-<div class="lyrics-container" id="lyricsContainer"></div>
 <div class="song-note" id="songNote"></div>
 <div class="yt-player"><div id="ytPlayer"></div></div>
 
@@ -289,127 +244,6 @@ function getWeatherDesc(code) {
     return 'Clear';
 }
 fetchWeather();
-
-// === LYRICS (Apple Music style) ===
-// Each song has timed lines: [seconds, "text"]
-// Replace placeholder text with actual lyrics and adjust timings
-var songLyrics = {
-    0: [ // Good Day - Nappy Roots
-        [3, "Line 1 - add your lyrics"],
-        [8, "Line 2"],
-        [13, "Line 3"],
-        [18, "Line 4"],
-        [23, "Line 5"],
-        [28, "Line 6"],
-        [33, "Line 7"],
-        [38, "Line 8"]
-    ],
-    1: [ // Houdini - Eminem (starts at 7s)
-        [10, "Line 1 - add your lyrics"],
-        [15, "Line 2"],
-        [20, "Line 3"],
-        [25, "Line 4"],
-        [30, "Line 5"],
-        [35, "Line 6"],
-        [40, "Line 7"],
-        [45, "Line 8"]
-    ],
-    2: [ // Only Happy When It Rains - Garbage (starts at 10s)
-        [13, "Line 1 - add your lyrics"],
-        [18, "Line 2"],
-        [23, "Line 3"],
-        [28, "Line 4"],
-        [33, "Line 5"],
-        [38, "Line 6"],
-        [43, "Line 7"],
-        [48, "Line 8"]
-    ],
-    3: [ // Somebody's Me - Enrique Iglesias (starts at 67s)
-        [70, "Line 1 - add your lyrics"],
-        [75, "Line 2"],
-        [80, "Line 3"],
-        [85, "Line 4"],
-        [90, "Line 5"],
-        [95, "Line 6"],
-        [100, "Line 7"],
-        [105, "Line 8"]
-    ]
-};
-
-var lyricsActive = false;
-var lyricsInterval = null;
-var currentLyricIdx = -1;
-
-function initLyrics(trackIdx) {
-    var container = document.getElementById('lyricsContainer');
-    container.textContent = '';
-    currentLyricIdx = -1;
-    var lyrics = songLyrics[trackIdx];
-    if (!lyrics) return;
-    // Show 5 lines at a time (2 past, 1 active, 2 upcoming)
-    for (var i = 0; i < lyrics.length; i++) {
-        var div = document.createElement('div');
-        div.className = 'lyric-line upcoming';
-        div.textContent = lyrics[i][1];
-        div.setAttribute('data-time', lyrics[i][0]);
-        container.appendChild(div);
-    }
-}
-
-function updateLyrics() {
-    if (!player || !player.getCurrentTime || !lyricsActive) return;
-    var currentTime = player.getCurrentTime();
-    var lyrics = songLyrics[currentTrack];
-    if (!lyrics) return;
-    var lines = document.querySelectorAll('.lyric-line');
-    var newIdx = -1;
-
-    // Find which line should be active
-    for (var i = lyrics.length - 1; i >= 0; i--) {
-        if (currentTime >= lyrics[i][0]) { newIdx = i; break; }
-    }
-
-    if (newIdx === currentLyricIdx) return;
-    currentLyricIdx = newIdx;
-
-    // Update classes
-    for (var i = 0; i < lines.length; i++) {
-        lines[i].className = 'lyric-line';
-        if (i < currentLyricIdx) {
-            lines[i].classList.add('past');
-        } else if (i === currentLyricIdx) {
-            lines[i].classList.add('active');
-        } else {
-            lines[i].classList.add('upcoming');
-        }
-    }
-
-    // Scroll active line to center by adjusting container
-    if (currentLyricIdx >= 0 && lines[currentLyricIdx]) {
-        var container = document.getElementById('lyricsContainer');
-        var lineEl = lines[currentLyricIdx];
-        var containerH = container.offsetHeight;
-        var lineTop = lineEl.offsetTop;
-        var lineH = lineEl.offsetHeight;
-        var scrollTo = lineTop - (containerH / 2) + (lineH / 2);
-        container.style.transform = 'translateY(' + (-scrollTo + containerH * 0.4) + 'px)';
-        container.style.transition = 'transform 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
-    }
-}
-
-function startLyrics() {
-    lyricsActive = true;
-    initLyrics(currentTrack);
-    document.getElementById('lyricsContainer').classList.add('visible');
-    if (lyricsInterval) clearInterval(lyricsInterval);
-    lyricsInterval = setInterval(updateLyrics, 200);
-}
-
-function stopLyrics() {
-    lyricsActive = false;
-    if (lyricsInterval) { clearInterval(lyricsInterval); lyricsInterval = null; }
-    document.getElementById('lyricsContainer').classList.remove('visible');
-}
 
 var currentTrack = 0, player = null, isPlaying = false;
 var beatInterval = null;
@@ -767,8 +601,6 @@ function playTrack(index) {
         player.loadVideoById({ videoId: track.id, startSeconds: track.startAt || 0 });
         isPlaying = true; document.getElementById('playBtn').textContent = '\u23F8';
     }
-    // Reinit lyrics if active
-    if (lyricsActive) { initLyrics(currentTrack); currentLyricIdx = -1; }
 }
 function nextTrack() { playTrack(currentTrack + 1); }
 function prevTrack() { playTrack(currentTrack - 1); }
@@ -885,11 +717,6 @@ function runBeatAnimations() {
             lines[i].style.transition = 'opacity 2s ease';
             lines[i].style.opacity = '0';
         }
-        // Start Apple Music lyrics after text fades
-        setTimeout(function() {
-            document.querySelector('.container').style.display = 'none';
-            startLyrics();
-        }, 2500);
     }, lastLineTime + 20000);
 }
 
