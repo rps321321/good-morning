@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>For Nadine</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300&display=swap');
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { width: 100%; height: 100%; overflow: hidden; -webkit-tap-highlight-color: transparent; }
+
+body {
+    background: #0a0a0a;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    cursor: default; touch-action: manipulation;
+}
+
+canvas#viz { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; }
+
+.start-screen {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: #0a0a0a;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    z-index: 10; transition: opacity 1.5s ease;
+}
+.start-hint { font-size: 14px; color: #5a4a4a; margin-bottom: 30px; letter-spacing: 3px; }
+.start-btn {
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-size: 24px; color: #f0d0d0; background: none;
+    border: 1px solid rgba(240,208,208,0.3);
+    padding: 18px 44px; cursor: pointer; letter-spacing: 4px;
+    transition: all 0.5s ease; border-radius: 4px;
+}
+.start-btn:hover, .start-btn:active {
+    border-color: rgba(240,208,208,0.7);
+    text-shadow: 0 0 30px rgba(240,208,208,0.5);
+    transform: scale(1.05);
+}
+
+.container { text-align: center; position: relative; z-index: 1; padding: 0 24px; }
+
+h1 {
+    font-size: clamp(42px, 12vw, 72px);
+    color: #f0d0d0; font-weight: 300;
+    letter-spacing: 8px; margin-bottom: 30px;
+    opacity: 0;
+}
+h1 span {
+    display: inline-block; opacity: 0;
+    transform: translateY(20px) scale(0.8);
+    transition: opacity 0.4s ease, transform 0.5s cubic-bezier(0.34,1.56,0.64,1);
+}
+h1 span.visible { opacity: 1; transform: translateY(0) scale(1); }
+
+@keyframes shimmer {
+    0%, 100% { text-shadow: 0 0 15px rgba(240,208,208,0.3), 0 0 40px rgba(240,208,208,0.1); }
+    50% { text-shadow: 0 0 25px rgba(255,220,220,0.7), 0 0 60px rgba(240,208,208,0.3); }
+}
+h1.shimmer { animation: shimmer 3s ease-in-out infinite; }
+
+@keyframes floatBob {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-5px); }
+}
+.floating { animation: floatBob 3.5s ease-in-out infinite; }
+
+.line {
+    font-size: clamp(16px, 4.5vw, 24px);
+    color: #c9a0a0; line-height: 1.8;
+    font-weight: 300; font-style: italic;
+    opacity: 0; transform: translateY(25px);
+    filter: blur(6px);
+    transition: opacity 0.8s ease, transform 0.8s cubic-bezier(0.34,1.56,0.64,1), filter 0.8s ease;
+}
+.line.visible {
+    opacity: 1; transform: translateY(0); filter: blur(0);
+}
+
+.music-player {
+    position: fixed; bottom: 20px;
+    left: 50%; transform: translateX(-50%);
+    z-index: 5;
+    display: flex; align-items: center; gap: 12px;
+    opacity: 0; transition: opacity 1s ease;
+    background: rgba(10,10,10,0.7);
+    backdrop-filter: blur(12px);
+    padding: 12px 20px; border-radius: 30px;
+    border: 1px solid rgba(240,208,208,0.15);
+}
+.music-btn {
+    min-width: 50px; min-height: 50px;
+    border-radius: 50%;
+    border: 1px solid rgba(240,208,208,0.25);
+    background: transparent; color: #f0d0d0;
+    font-size: 16px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s ease; position: relative;
+    -webkit-tap-highlight-color: transparent;
+}
+.music-btn:active { transform: scale(0.85); background: rgba(240,208,208,0.1); }
+.now-playing { font-size: 12px; color: #8a6a6a; font-style: italic; text-align: center; min-width: 110px; }
+.song-title { color: #c9a0a0; font-size: 13px; }
+
+.song-note {
+    position: fixed; bottom: 90px;
+    left: 50%; transform: translateX(-50%);
+    z-index: 5; background: rgba(20,20,20,0.9);
+    border: 1px solid rgba(240,208,208,0.2);
+    border-radius: 8px; padding: 12px 18px;
+    max-width: 280px; width: 90%;
+    font-size: 13px; color: #d4a0a0;
+    font-style: italic; text-align: center;
+    opacity: 0; transition: opacity 1s ease;
+    backdrop-filter: blur(10px);
+}
+.yt-player { position: fixed; top: -9999px; left: -9999px; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+
+@keyframes glowPulse {
+    0%, 100% { text-shadow: 0 0 30px rgba(240,208,208,0.2), 0 0 60px rgba(240,208,208,0.1); }
+    50% { text-shadow: 0 0 50px rgba(240,208,208,0.5), 0 0 100px rgba(240,208,208,0.2); }
+}
+</style>
+</head>
+<body>
+
+<div class="start-screen" id="startScreen">
+    <div class="start-hint">a little something for you</div>
+    <button class="start-btn" id="startBtn">Open your surprise</button>
+</div>
+
+<canvas id="viz"></canvas>
+
+<div class="container">
+    <h1 id="name">Nadine</h1>
+    <div id="lines">
+        <div class="line">Good Morning.</div>
+        <div class="line" style="margin-top:16px;">Hope you are still asleep</div>
+        <div class="line">and having some sweet beautiful dreams.</div>
+        <div class="line" style="margin-top:16px;">I feel sleepy and will go to bed now.</div>
+        <div class="line" style="margin-top:16px;">I wish you have a nice morning</div>
+        <div class="line">and a good start of the day.</div>
+    </div>
+</div>
+
+<div class="music-player" id="musicPlayer">
+    <button class="music-btn" id="prevBtn">&#9664;</button>
+    <div class="now-playing">
+        <div class="song-title" id="songTitle"></div>
+        <div id="songArtist"></div>
+    </div>
+    <button class="music-btn" id="playBtn">&#10074;&#10074;</button>
+    <button class="music-btn" id="nextBtn">&#9654;</button>
+</div>
+
+<div class="song-note" id="songNote"></div>
+<div class="yt-player"><div id="ytPlayer"></div></div>
+
+<script>
+var playlist = [
+    { id: 'M3fkZeWsyvo', title: 'Good Day', artist: 'Nappy Roots', bpm: 92 },
+    { id: '22tVWwmTie8', title: 'Houdini', artist: 'Eminem', startAt: 7, bpm: 140 },
+    { id: 'GpBFOJ3R0M4', title: 'Only Happy When It Rains', artist: 'Garbage', startAt: 10, bpm: 126, note: 'This one is from my playlist \u2014 I wanted to share it with you' },
+    { id: 'gv9hrQzU0cA', title: 'Somebodys Me', artist: 'Enrique Iglesias', startAt: 67, bpm: 80 }
+];
+
+var currentTrack = 0, player = null, isPlaying = false;
+var beatInterval = null;
+var energy = 0, targetEnergy = 0;
+var canvas = document.getElementById('viz');
+var ctx = canvas.getContext('2d');
+var W, H, cx, cy;
+var stars = [], particles = [], bokeh = [];
+var simBars = new Array(64).fill(0);
+var hueShift = 0;
+
+// Wave color palette: rose gold, blush, coral, mauve, dusty rose
+var waveColors = [
+    { h: 0, s: 72, l: 72 },
+    { h: 12, s: 65, l: 70 },
+    { h: 340, s: 60, l: 68 },
+    { h: 320, s: 55, l: 65 },
+    { h: 350, s: 68, l: 70 }
+];
+
+// Silk wave parameters
+var waveParams = [
+    { freq: 0.0015, speed: 0.6, ampScale: 1.0 },
+    { freq: 0.0018, speed: 0.5, ampScale: 0.85 },
+    { freq: 0.0012, speed: 0.7, ampScale: 0.7 },
+    { freq: 0.0020, speed: 0.45, ampScale: 0.55 },
+    { freq: 0.0016, speed: 0.65, ampScale: 0.4 }
+];
+
+function resize() {
+    var dpr = Math.min(window.devicePixelRatio || 1, 2);
+    W = window.innerWidth; H = window.innerHeight;
+    canvas.width = W * dpr; canvas.height = H * dpr;
+    canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    cx = W / 2; cy = H / 2;
+    initStars(); initBokeh();
+}
+
+function initStars() {
+    stars = [];
+    for (var i = 0; i < 150; i++) {
+        stars.push({ x: Math.random() * W, y: Math.random() * H, size: Math.random() * 2 + 0.5, phase: Math.random() * Math.PI * 2 });
+    }
+}
+
+function initBokeh() {
+    bokeh = [];
+    for (var i = 0; i < 6; i++) {
+        bokeh.push({
+            x: Math.random() * W, y: Math.random() * H,
+            vx: (Math.random() - 0.5) * 0.08, vy: (Math.random() - 0.5) * 0.06,
+            size: 100 + Math.random() * 160, opacity: 0.03 + Math.random() * 0.025,
+            hue: 320 + Math.random() * 30
+        });
+    }
+}
+
+function updateSimBars() {
+    for (var i = 0; i < simBars.length; i++) {
+        var target = 0;
+        if (isPlaying) {
+            var bassWeight = 1 - (i / simBars.length) * 0.6;
+            target = (Math.random() * 0.5 + 0.2) * energy * bassWeight;
+            if (i % 8 === 0) target *= 1.3;
+        }
+        simBars[i] += (target - simBars[i]) * 0.25;
+    }
+}
+
+function getWavePoints(w, time, waveY, maxAmp) {
+    var p = waveParams[w]; var offset = w * 0.3;
+    var amp = maxAmp * energy * p.ampScale;
+    var points = [];
+    for (var x = 0; x <= W; x += 4) {
+        var barIdx = Math.floor((x / W) * simBars.length);
+        var barVal = simBars[Math.min(barIdx, simBars.length - 1)];
+        var s1 = Math.sin(x * p.freq + time * p.speed + offset);
+        var s2 = Math.sin(x * p.freq * 1.7 + time * p.speed * 0.6 + offset * 2);
+        var s3 = Math.sin(x * p.freq * 0.5 + time * p.speed * 0.3);
+        var y = waveY + s1 * amp + s2 * amp * 0.3 + s3 * amp * 0.15 + barVal * maxAmp * 0.7;
+        points.push({ x: x, y: y });
+    }
+    return points;
+}
+
+function drawBezierWave(points, strokeStyle, lineWidth, fillBelow) {
+    if (points.length < 3) return;
+    ctx.beginPath();
+    ctx.moveTo(points[0].x, points[0].y);
+    for (var i = 0; i < points.length - 1; i++) {
+        var cpx = (points[i].x + points[i + 1].x) / 2;
+        var cpy = (points[i].y + points[i + 1].y) / 2;
+        ctx.quadraticCurveTo(points[i].x, points[i].y, cpx, cpy);
+    }
+    var last = points[points.length - 1];
+    ctx.lineTo(last.x, last.y);
+    ctx.strokeStyle = strokeStyle;
+    ctx.lineWidth = lineWidth;
+    ctx.stroke();
+
+    if (fillBelow) {
+        ctx.lineTo(W, H); ctx.lineTo(0, H); ctx.closePath();
+        ctx.fillStyle = fillBelow;
+        ctx.fill();
+    }
+}
+
+function draw(time) {
+    ctx.clearRect(0, 0, W, H);
+    time *= 0.001;
+    energy += (targetEnergy - energy) * 0.08;
+    hueShift = (hueShift + 0.08) % 360;
+    updateSimBars();
+
+    // === Aurora nebula ===
+    var at = time * 0.2;
+    var ag = ctx.createRadialGradient(
+        cx + Math.sin(at) * W * 0.2, cy + Math.cos(at * 0.7) * H * 0.15, W * 0.05,
+        cx, cy, Math.max(W, H) * 0.6
+    );
+    var ah1 = (320 + hueShift * 0.15) % 360;
+    ag.addColorStop(0, 'hsla(' + ah1 + ', 50%, 35%, ' + (0.06 + energy * 0.04) + ')');
+    ag.addColorStop(0.5, 'hsla(' + ((ah1 + 30) % 360) + ', 40%, 25%, 0.04)');
+    ag.addColorStop(1, 'transparent');
+    ctx.fillStyle = ag;
+    ctx.fillRect(0, 0, W, H);
+
+    // === Bokeh ===
+    for (var i = 0; i < bokeh.length; i++) {
+        var b = bokeh[i];
+        b.x += b.vx; b.y += b.vy;
+        if (b.x < -b.size) b.x = W + b.size;
+        if (b.x > W + b.size) b.x = -b.size;
+        if (b.y < -b.size) b.y = H + b.size;
+        if (b.y > H + b.size) b.y = -b.size;
+        var bg = ctx.createRadialGradient(b.x, b.y, 0, b.x, b.y, b.size);
+        bg.addColorStop(0, 'hsla(' + b.hue + ', 45%, 55%, ' + (b.opacity * (0.8 + energy * 0.4)) + ')');
+        bg.addColorStop(1, 'transparent');
+        ctx.fillStyle = bg;
+        ctx.beginPath(); ctx.arc(b.x, b.y, b.size, 0, Math.PI * 2); ctx.fill();
+    }
+
+    // === Stars with bright pulses ===
+    for (var i = 0; i < stars.length; i++) {
+        var s = stars[i];
+        var tw = 0.3 + 0.7 * (Math.sin(time * 2 + s.phase) * 0.5 + 0.5);
+        var bright = Math.sin(time * 0.5 + s.phase) > 0.88;
+        if (bright) {
+            ctx.beginPath(); ctx.arc(s.x, s.y, s.size * 4, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(255,255,255,' + (tw * 0.12) + ')'; ctx.fill();
+        }
+        ctx.beginPath(); ctx.arc(s.x, s.y, s.size * (1 + energy * 0.2), 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(255,255,255,' + (tw * 0.6) + ')'; ctx.fill();
+    }
+
+    // === Horizontal flowing waves ===
+    var waveY = H * 0.5;
+    var maxAmp = H * 0.1;
+
+    for (var w = 4; w >= 0; w--) {
+        var c = waveColors[w];
+        var points = getWavePoints(w, time, waveY, maxAmp);
+        var alpha = isPlaying ? (0.06 + (5 - w) * 0.05) : 0.025;
+
+        // Glow
+        drawBezierWave(points, 'hsla(' + c.h + ', ' + c.s + '%, ' + c.l + '%, ' + (alpha * 0.3) + ')', 10, null);
+        // Main line
+        var fillGrad = null;
+        if (w < 2) {
+            fillGrad = ctx.createLinearGradient(0, waveY, 0, H);
+            fillGrad.addColorStop(0, 'hsla(' + c.h + ', ' + c.s + '%, ' + (c.l - 10) + '%, ' + (alpha * 0.12) + ')');
+            fillGrad.addColorStop(1, 'transparent');
+        }
+        drawBezierWave(points, 'hsla(' + c.h + ', ' + c.s + '%, ' + c.l + '%, ' + alpha + ')', 1.5 + (5 - w) * 0.25, fillGrad);
+    }
+
+    // Mirror waves (reflection above)
+    for (var w = 0; w < 2; w++) {
+        var c = waveColors[w];
+        var points = getWavePoints(w, time, waveY, maxAmp * 0.25);
+        // Invert Y around waveY
+        for (var i = 0; i < points.length; i++) { points[i].y = waveY - (points[i].y - waveY); }
+        drawBezierWave(points, 'hsla(' + c.h + ', ' + (c.s - 15) + '%, ' + c.l + '%, 0.06)', 1, null);
+    }
+
+    // === Particles (firefly-style with glow + trails) ===
+    for (var i = particles.length - 1; i >= 0; i--) {
+        var p = particles[i];
+        // Trail history
+        if (!p.trail) p.trail = [];
+        p.trail.push({ x: p.x, y: p.y });
+        if (p.trail.length > 5) p.trail.shift();
+
+        if (p.floatPhase !== undefined) {
+            p.floatPhase += p.floatSpeed;
+            p.vx = Math.sin(p.floatPhase) * 0.2;
+            p.vy -= 0.008;
+        } else {
+            if (!p.isStar) p.vy -= 0.015;
+        }
+        p.x += p.vx; p.y += p.vy;
+        p.life -= p.isStar ? 0.02 : 0.006;
+        if (p.life <= 0) { particles.splice(i, 1); continue; }
+
+        if (p.isStar) {
+            // Shooting star with gradient trail
+            var sg = ctx.createLinearGradient(p.x - p.vx * 10, p.y - p.vy * 10, p.x, p.y);
+            sg.addColorStop(0, 'hsla(45, 100%, 85%, 0)');
+            sg.addColorStop(1, 'hsla(45, 100%, 90%, ' + (p.life * 0.6) + ')');
+            ctx.strokeStyle = sg; ctx.lineWidth = 1.5;
+            ctx.beginPath(); ctx.moveTo(p.x - p.vx * 10, p.y - p.vy * 10); ctx.lineTo(p.x, p.y); ctx.stroke();
+        } else {
+            // Draw trail
+            for (var t = 0; t < p.trail.length; t++) {
+                var tr = p.trail[t];
+                var to = (t / p.trail.length) * p.life * 0.2;
+                ctx.beginPath(); ctx.arc(tr.x, tr.y, p.size * 0.5, 0, Math.PI * 2);
+                ctx.fillStyle = 'hsla(' + p.hue + ', 60%, 75%, ' + to + ')'; ctx.fill();
+            }
+            // Soft glowing orb
+            var pg = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.size * p.life * 2);
+            pg.addColorStop(0, 'hsla(' + p.hue + ', 80%, 85%, ' + (p.life * 0.7) + ')');
+            pg.addColorStop(0.4, 'hsla(' + p.hue + ', 70%, 70%, ' + (p.life * 0.3) + ')');
+            pg.addColorStop(1, 'transparent');
+            ctx.fillStyle = pg;
+            ctx.beginPath(); ctx.arc(p.x, p.y, p.size * p.life * 2, 0, Math.PI * 2); ctx.fill();
+        }
+    }
+
+    // === Vignette ===
+    var vg = ctx.createRadialGradient(cx, cy, W * 0.15, cx, cy, Math.max(W, H) * 0.7);
+    vg.addColorStop(0, 'rgba(0,0,0,0)');
+    vg.addColorStop(0.7, 'rgba(0,0,0,0.12)');
+    vg.addColorStop(1, 'rgba(0,0,0,0.4)');
+    ctx.fillStyle = vg; ctx.fillRect(0, 0, W, H);
+
+    requestAnimationFrame(draw);
+}
+
+// === BEAT ENGINE ===
+function startBeatFx() {
+    stopBeatFx();
+    var bpm = playlist[currentTrack].bpm || 100;
+    var beatMs = 60000 / bpm;
+    targetEnergy = 1;
+
+    beatInterval = setInterval(function() {
+        targetEnergy = 1.2;
+        setTimeout(function() { targetEnergy = isPlaying ? 0.5 : 0; }, beatMs * 0.3);
+
+        // Haptic bass feedback synced to beat
+        if (navigator.vibrate) {
+            var bpm = playlist[currentTrack].bpm || 100;
+            if (bpm >= 130) {
+                // Fast tracks (Houdini, Garbage) — sharp quick pulse
+                navigator.vibrate(8);
+            } else if (bpm >= 90) {
+                // Mid tracks (Good Day) — punchy double tap
+                navigator.vibrate([10, 20, 6]);
+            } else {
+                // Slow tracks (Somebody's Me) — deep soft thud
+                navigator.vibrate(15);
+            }
+        }
+
+        // Gentle firefly particles along wave
+        var count = 3 + Math.floor(Math.random() * 3);
+        for (var i = 0; i < count; i++) {
+            var px = Math.random() * W;
+            var phase = Math.random() * Math.PI * 2;
+            particles.push({
+                x: px, y: H * 0.5 + (Math.random() - 0.5) * 20,
+                vx: Math.sin(phase) * 0.3, vy: -0.15 - Math.random() * 0.2,
+                size: 1.5 + Math.random() * 2.5, life: 1,
+                hue: 320 + Math.random() * 40,
+                floatPhase: phase, floatSpeed: 0.01 + Math.random() * 0.015
+            });
+        }
+
+        // Occasional shooting star (1 in 5 beats)
+        if (Math.random() < 0.2) {
+            particles.push({
+                x: Math.random() * W * 0.6, y: Math.random() * H * 0.3,
+                vx: 3 + Math.random() * 4, vy: 1.5 + Math.random() * 2,
+                size: 1.2, life: 1, hue: 45, isStar: true
+            });
+        }
+    }, beatMs);
+}
+
+function stopBeatFx() {
+    if (beatInterval) { clearInterval(beatInterval); beatInterval = null; }
+    targetEnergy = 0;
+}
+
+// === TOUCH INTERACTIONS ===
+document.addEventListener('touchstart', function(e) {
+    var t = e.touches[0];
+    for (var i = 0; i < 10; i++) {
+        var a = (Math.PI * 2 * i) / 10;
+        particles.push({
+            x: t.clientX, y: t.clientY,
+            vx: Math.cos(a) * (0.5 + Math.random()), vy: Math.sin(a) * (0.5 + Math.random()),
+            size: 1.5 + Math.random() * 2, life: 1, hue: 330 + Math.random() * 30,
+            floatPhase: a, floatSpeed: 0.02
+        });
+    }
+    if (navigator.vibrate) navigator.vibrate([12, 8, 12]);
+});
+
+var lastTrail = { x: 0, y: 0 };
+document.addEventListener('touchmove', function(e) {
+    var t = e.touches[0];
+    var d = Math.hypot(t.clientX - lastTrail.x, t.clientY - lastTrail.y);
+    if (d > 10) {
+        particles.push({
+            x: t.clientX, y: t.clientY, vx: 0, vy: -0.1,
+            size: 1 + Math.random() * 1.5, life: 0.7, hue: 340 + Math.random() * 20
+        });
+        lastTrail = { x: t.clientX, y: t.clientY };
+    }
+});
+
+// === YOUTUBE ===
+var tag = document.createElement('script');
+tag.src = 'https://www.youtube.com/iframe_api';
+document.head.appendChild(tag);
+
+function onYouTubeIframeAPIReady() {
+    player = new YT.Player('ytPlayer', {
+        height: '1', width: '1', videoId: playlist[0].id,
+        playerVars: { autoplay: 0, loop: 0, controls: 0, rel: 0 },
+        events: {
+            onStateChange: function(e) {
+                if (e.data === YT.PlayerState.ENDED) nextTrack();
+                if (e.data === YT.PlayerState.PLAYING) startBeatFx();
+                if (e.data === YT.PlayerState.PAUSED) stopBeatFx();
+            }
+        }
+    });
+}
+
+function playTrack(index) {
+    currentTrack = index;
+    if (currentTrack >= playlist.length) currentTrack = 0;
+    if (currentTrack < 0) currentTrack = playlist.length - 1;
+    var track = playlist[currentTrack];
+    document.getElementById('songTitle').textContent = track.title;
+    document.getElementById('songArtist').textContent = track.artist;
+    var noteEl = document.getElementById('songNote');
+    if (track.note) { noteEl.textContent = track.note; noteEl.style.opacity = '1'; }
+    else { noteEl.style.opacity = '0'; }
+    if (player && player.loadVideoById) {
+        player.loadVideoById({ videoId: track.id, startSeconds: track.startAt || 0 });
+        isPlaying = true; document.getElementById('playBtn').textContent = '\u23F8';
+    }
+}
+function nextTrack() { playTrack(currentTrack + 1); }
+function prevTrack() { playTrack(currentTrack - 1); }
+function togglePlay() {
+    if (!player) return;
+    if (isPlaying) { player.pauseVideo(); isPlaying = false; document.getElementById('playBtn').textContent = '\u25B6'; }
+    else { player.playVideo(); isPlaying = true; document.getElementById('playBtn').textContent = '\u23F8'; }
+}
+document.getElementById('nextBtn').addEventListener('click', nextTrack);
+document.getElementById('prevBtn').addEventListener('click', prevTrack);
+document.getElementById('playBtn').addEventListener('click', togglePlay);
+
+// === START ===
+document.getElementById('startBtn').addEventListener('click', function() {
+    var screen = document.getElementById('startScreen');
+    screen.style.opacity = '0';
+    setTimeout(function() { screen.style.display = 'none'; }, 1500);
+
+    var track = playlist[currentTrack];
+    document.getElementById('songTitle').textContent = track.title;
+    document.getElementById('songArtist').textContent = track.artist;
+    if (player && player.playVideo) {
+        player.playVideo(); isPlaying = true;
+        document.getElementById('playBtn').textContent = '\u23F8';
+    }
+    setTimeout(function() { document.getElementById('musicPlayer').style.opacity = '1'; }, 2000);
+    runBeatAnimations();
+});
+
+function runBeatAnimations() {
+    var nameEl = document.getElementById('name');
+    var lines = document.querySelectorAll('.line');
+    var beatMs = 60000 / (playlist[0].bpm || 92);
+
+    // Letter-by-letter name reveal
+    setTimeout(function() {
+        nameEl.style.opacity = '1';
+        var text = nameEl.textContent;
+        nameEl.textContent = '';
+        for (var i = 0; i < text.length; i++) {
+            var span = document.createElement('span');
+            span.textContent = text[i];
+            nameEl.appendChild(span);
+        }
+        var spans = nameEl.querySelectorAll('span');
+        spans.forEach(function(s, idx) {
+            setTimeout(function() {
+                s.classList.add('visible');
+            }, idx * 120);
+        });
+        // Particle burst
+        for (var i = 0; i < 20; i++) {
+            var a = Math.random() * Math.PI * 2;
+            particles.push({ x: cx, y: cy - 30, vx: Math.cos(a) * (0.5 + Math.random()), vy: Math.sin(a) * (0.5 + Math.random()) - 0.5, size: 2 + Math.random() * 2, life: 1, hue: 330 + Math.random() * 30, floatPhase: a, floatSpeed: 0.015 });
+        }
+    }, beatMs * 2);
+
+    // Shimmer + float on name
+    setTimeout(function() {
+        nameEl.classList.add('shimmer');
+        nameEl.classList.add('floating');
+    }, beatMs * 5);
+
+    // Lines blur-fade in on beats
+    for (var i = 0; i < lines.length; i++) {
+        (function(idx) {
+            setTimeout(function() {
+                lines[idx].classList.add('visible');
+                setTimeout(function() { lines[idx].classList.add('floating'); }, 800);
+                for (var j = 0; j < 4; j++) {
+                    particles.push({
+                        x: cx + (Math.random() - 0.5) * 80, y: cy + 20 + idx * 25,
+                        vx: (Math.random() - 0.5) * 0.5, vy: -0.2 - Math.random() * 0.3,
+                        size: 1.5 + Math.random() * 2, life: 1, hue: 340 + Math.random() * 20,
+                        floatPhase: Math.random() * Math.PI * 2, floatSpeed: 0.012
+                    });
+                }
+            }, beatMs * (6 + idx * 2));
+        })(i);
+    }
+
+    // Fade out all text 20s after last line appears
+    var lastLineTime = beatMs * (6 + lines.length * 2);
+    setTimeout(function() {
+        nameEl.style.transition = 'opacity 2s ease';
+        nameEl.style.opacity = '0';
+        for (var i = 0; i < lines.length; i++) {
+            lines[i].style.transition = 'opacity 2s ease';
+            lines[i].style.opacity = '0';
+        }
+    }, lastLineTime + 20000);
+}
+
+// === INIT ===
+resize();
+window.addEventListener('resize', resize);
+requestAnimationFrame(draw);
+</script>
+</body>
+</html>
