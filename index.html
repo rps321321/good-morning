@@ -181,6 +181,54 @@ var playlist = [
     { id: 'gv9hrQzU0cA', title: 'Somebodys Me', artist: 'Enrique Iglesias', startAt: 67, bpm: 80 }
 ];
 
+// === WEATHER (Nis, Serbia) ===
+function fetchWeather() {
+    var url = 'https://api.open-meteo.com/v1/forecast?latitude=43.3247&longitude=21.9033&current=temperature_2m,weather_code,wind_speed_10m,relative_humidity_2m&timezone=Europe/Belgrade';
+    fetch(url).then(function(r) { return r.json(); }).then(function(data) {
+        var current = data.current;
+        var temp = Math.round(current.temperature_2m);
+        var code = current.weather_code;
+        var icon = getWeatherIcon(code);
+        var desc = getWeatherDesc(code);
+        var el = document.getElementById('weather');
+        var iconSpan = document.createElement('span');
+        iconSpan.className = 'weather-icon';
+        iconSpan.textContent = icon;
+        var tempSpan = document.createElement('span');
+        tempSpan.className = 'weather-temp';
+        tempSpan.textContent = temp + '\u00B0C';
+        var descSpan = document.createElement('span');
+        descSpan.className = 'weather-desc';
+        descSpan.textContent = ' \u00B7 ' + desc + ' in Ni\u0161';
+        el.appendChild(iconSpan);
+        el.appendChild(tempSpan);
+        el.appendChild(descSpan);
+    }).catch(function() {});
+}
+function getWeatherIcon(code) {
+    if (code === 0) return '\u2600\uFE0F';
+    if (code <= 3) return '\u26C5';
+    if (code <= 48) return '\uD83C\uDF2B\uFE0F';
+    if (code <= 67) return '\uD83C\uDF27\uFE0F';
+    if (code <= 77) return '\u2744\uFE0F';
+    if (code <= 86) return '\uD83C\uDF28\uFE0F';
+    if (code >= 95) return '\u26C8\uFE0F';
+    return '\u2600\uFE0F';
+}
+function getWeatherDesc(code) {
+    if (code === 0) return 'Clear sky';
+    if (code <= 3) return 'Partly cloudy';
+    if (code <= 48) return 'Foggy';
+    if (code <= 57) return 'Drizzle';
+    if (code <= 67) return 'Rain';
+    if (code <= 77) return 'Snow';
+    if (code <= 82) return 'Rain showers';
+    if (code <= 86) return 'Snow showers';
+    if (code >= 95) return 'Thunderstorm';
+    return 'Clear';
+}
+fetchWeather();
+
 var currentTrack = 0, player = null, isPlaying = false;
 var beatInterval = null;
 var energy = 0, targetEnergy = 0;
