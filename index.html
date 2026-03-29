@@ -78,7 +78,11 @@ h1.shimmer { animation: shimmer 3s ease-in-out infinite; }
     transition: opacity 1s ease, transform 1s ease, filter 1s ease;
 }
 .weather.visible { opacity: 1; transform: translateY(0); filter: blur(0); }
-.weather-icon { font-size: clamp(22px, 5vw, 30px); margin-right: 8px; vertical-align: middle; }
+.weather-icon {
+    display: inline-block; margin-right: 10px; vertical-align: middle;
+    width: clamp(18px, 4vw, 24px); height: clamp(18px, 4vw, 24px);
+    opacity: 0.7;
+}
 .weather-temp { color: #c9a0a0; font-weight: 400; font-size: clamp(18px, 4.5vw, 24px); }
 .weather-desc { color: #8a7a7a; font-style: italic; }
 
@@ -188,12 +192,21 @@ function fetchWeather() {
         var current = data.current;
         var temp = Math.round(current.temperature_2m);
         var code = current.weather_code;
-        var icon = getWeatherIcon(code);
         var desc = getWeatherDesc(code);
         var el = document.getElementById('weather');
+        var svg = getWeatherSvg(code);
         var iconSpan = document.createElement('span');
         iconSpan.className = 'weather-icon';
-        iconSpan.textContent = icon;
+        var iconContainer = document.createElement('span');
+        iconContainer.style.display = 'inline-block';
+        iconContainer.style.width = 'inherit';
+        iconContainer.style.height = 'inherit';
+        iconContainer.style.verticalAlign = 'middle';
+        // Parse SVG safely
+        var parser = new DOMParser();
+        var svgDoc = parser.parseFromString(svg, 'image/svg+xml');
+        var svgEl = svgDoc.documentElement;
+        iconSpan.appendChild(svgEl);
         var tempSpan = document.createElement('span');
         tempSpan.className = 'weather-temp';
         tempSpan.textContent = temp + '\u00B0C';
@@ -205,15 +218,16 @@ function fetchWeather() {
         el.appendChild(descSpan);
     }).catch(function() {});
 }
-function getWeatherIcon(code) {
-    if (code === 0) return '\u2600\uFE0F';
-    if (code <= 3) return '\u26C5';
-    if (code <= 48) return '\uD83C\uDF2B\uFE0F';
-    if (code <= 67) return '\uD83C\uDF27\uFE0F';
-    if (code <= 77) return '\u2744\uFE0F';
-    if (code <= 86) return '\uD83C\uDF28\uFE0F';
-    if (code >= 95) return '\u26C8\uFE0F';
-    return '\u2600\uFE0F';
+function getWeatherSvg(code) {
+    var s = 'xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#c9a0a0" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"';
+    if (code === 0) return '<svg ' + s + '><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>';
+    if (code <= 3) return '<svg ' + s + '><path d="M12 2v2M4.93 4.93l1.41 1.41M20 12h2M17.66 6.34l1.41-1.41M2 12h2"/><circle cx="12" cy="10" r="4"/><path d="M8 16a4 4 0 0 0 8 0H8z" fill="none"/><path d="M6 18h12" opacity="0.5"/></svg>';
+    if (code <= 48) return '<svg ' + s + '><path d="M4 12h16M4 16h16M4 8h16" opacity="0.5"/></svg>';
+    if (code <= 67) return '<svg ' + s + '><path d="M8 4a4 4 0 0 1 8 0 3 3 0 0 1 2 5.5H6A3 3 0 0 1 8 4z"/><path d="M8 14v2M12 13v3M16 14v2" opacity="0.7"/></svg>';
+    if (code <= 77) return '<svg ' + s + '><path d="M12 4v1M8 8l-1-1M16 8l1-1"/><circle cx="9" cy="15" r="1" fill="#c9a0a0" stroke="none" opacity="0.5"/><circle cx="15" cy="13" r="1" fill="#c9a0a0" stroke="none" opacity="0.5"/><circle cx="12" cy="17" r="1" fill="#c9a0a0" stroke="none" opacity="0.5"/></svg>';
+    if (code <= 86) return '<svg ' + s + '><path d="M8 4a4 4 0 0 1 8 0 3 3 0 0 1 2 5.5H6A3 3 0 0 1 8 4z"/><circle cx="9" cy="15" r="1" fill="#c9a0a0" stroke="none" opacity="0.5"/><circle cx="15" cy="14" r="1" fill="#c9a0a0" stroke="none" opacity="0.5"/></svg>';
+    if (code >= 95) return '<svg ' + s + '><path d="M8 4a4 4 0 0 1 8 0 3 3 0 0 1 2 5.5H6A3 3 0 0 1 8 4z"/><path d="M13 12l-2 4h3l-2 4" stroke="#c9a0a0"/></svg>';
+    return '<svg ' + s + '><circle cx="12" cy="12" r="4"/></svg>';
 }
 function getWeatherDesc(code) {
     if (code === 0) return 'Clear sky';
