@@ -154,7 +154,7 @@ h1.shimmer { animation: shimmer 3s ease-in-out infinite; }
 <canvas id="viz"></canvas>
 
 <div class="container">
-    <h1 id="name">Good Morning Nadine</h1>
+    <h1 id="name">Good Morning<br>Nadine</h1>
     <div class="weather" id="weather"></div>
     <div id="lines">
         <div class="line">Hope you are still asleep</div>
@@ -637,22 +637,35 @@ function runBeatAnimations() {
     // Letter-by-letter name reveal
     setTimeout(function() {
         nameEl.style.opacity = '1';
-        var text = nameEl.textContent;
+        var words = ['Good', 'Morning'];
+        var name = 'Nadine';
         nameEl.textContent = '';
         var delay = 0;
-        for (var i = 0; i < text.length; i++) {
-            if (text[i] === ' ') {
+        // First line: Good Morning
+        for (var w = 0; w < words.length; w++) {
+            if (w > 0) {
                 var space = document.createElement('span');
                 space.className = 'word-space visible';
                 space.textContent = ' ';
                 nameEl.appendChild(space);
-            } else {
+            }
+            for (var c = 0; c < words[w].length; c++) {
                 var span = document.createElement('span');
-                span.textContent = text[i];
+                span.textContent = words[w][c];
                 span.setAttribute('data-delay', delay);
                 nameEl.appendChild(span);
                 delay++;
             }
+        }
+        // Line break
+        nameEl.appendChild(document.createElement('br'));
+        // Second line: Nadine
+        for (var c = 0; c < name.length; c++) {
+            var span = document.createElement('span');
+            span.textContent = name[c];
+            span.setAttribute('data-delay', delay);
+            nameEl.appendChild(span);
+            delay++;
         }
         var letters = nameEl.querySelectorAll('span:not(.word-space)');
         letters.forEach(function(s) {
